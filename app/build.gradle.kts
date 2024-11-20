@@ -38,6 +38,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.gson)
     implementation("com.hivemq:hivemq-mqtt-client:1.3.3")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

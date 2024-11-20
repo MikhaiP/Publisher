@@ -19,6 +19,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client
 import java.util.UUID
+import com.google.gson.Gson
+
 
 class MainActivity : AppCompatActivity(){
     private var client: Mqtt5BlockingClient? = null
@@ -31,6 +33,14 @@ class MainActivity : AppCompatActivity(){
     private var latitude: Double = 0.0
     private var longitude: Double = 0.0
 
+    data class LocationData(
+        val StudentID: String,
+//        val ID: String,
+        val Time: Long,
+//        val Speed: String,
+        val Latitude: Double,
+        val Longitude: Double
+    )
     private lateinit var locationManager: LocationManager
     private lateinit var locationListener: LocationListener
 
@@ -56,46 +66,130 @@ class MainActivity : AppCompatActivity(){
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         locationListener = object : LocationListener{
             override fun onLocationChanged(location: Location) {
-                updateLocationData(location)
+                Log.d("locationlistener", "Location changed: $location")
+//                updateLocationData(location)
+                publishLocationToBroker(location)
             }
 
         }
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+//            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+//
+//            ActivityCompat.requestPermissions(
+//                this,
+//                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+//                request
+//            )
+//        } else {
+//            // Start location updates if permissions are already granted
+//            startLocationUpdates()
+//        }
+//        val isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+//        if (!isGPSEnabled) {
+//            Toast.makeText(this, "Please enable GPS", Toast.LENGTH_SHORT).show()
+//            Log.d("LocationUpdates", "GPS provider is disabled")
+//        }
     }
+//    private fun startLocationUpdates() {
+//        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+//            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+//
+//            locationManager.requestLocationUpdates(
+//                LocationManager.GPS_PROVIDER,
+//                1000L,  // Update interval in milliseconds
+//                1f,     // Minimum distance in meters
+//                locationListener
+//            )
+//            Log.d("LocationUpdates", "Started location updates")
+//        } else {
+//            Log.d("LocationUpdates", "Permissions not granted")
+//        }
+//    }
+
 
     fun publishToBroker(view: View?) {
-        if (startPublishing){
-            Toast.makeText(this, "Started publishing to broker already", Toast.LENGTH_SHORT).show()
+        if (startPublishing) {
+            Toast.makeText(this, "Already publishing to the broker", Toast.LENGTH_SHORT).show()
             return
         }
         startPublishing = true
         try {
             client?.connect()
-            Log.d("Connect", "Started publishing to client")
+            Log.d("Connect", "Connected to the broker")
 
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                var perm = arrayOf(
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                val permissions = arrayOf(
                     Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION
                 )
-
-                ActivityCompat.requestPermissions(this,perm,request)
+                ActivityCompat.requestPermissions(this, permissions, request)
                 return
             }
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener)
-            publishLocationToBroker()
 
-        } catch (e:Exception){
+            // Start location updates
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener)
+            Toast.makeText(this, "Started publishing to the broker", Toast.LENGTH_SHORT).show()
+
+        } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this,"An error occurred when connecting to broker", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "An error occurred when connecting to the broker", Toast.LENGTH_SHORT).show()
         }
-        Toast.makeText(this, "Started publishing to broker", Toast.LENGTH_SHORT).show()
+//        if (startPublishing){
+//            Toast.makeText(this, "Started publishing to broker already", Toast.LENGTH_SHORT).show()
+//            return
+//        }
+//        startPublishing = true
+//        try {
+//            client?.connect()
+//            Log.d("Connect", "Started publishing to client")
+//            if (ActivityCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_FINE_LOCATION
+//                ) == PackageManager.PERMISSION_GRANTED &&
+//                ActivityCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                ) == PackageManager.PERMISSION_GRANTED) {
+//
+//                // Publish the current location data
+//                publishLocationToBroker()
+//            } else {
+//                Log.d("PermissionCheck", "Location permissions not granted")
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            Toast.makeText(this, "An error occurred when connecting to broker", Toast.LENGTH_SHORT).show()
+//        }
+//        Toast.makeText(this, "Started publishing to broker", Toast.LENGTH_SHORT).show()
+
+
+
+//
+//            if (ActivityCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_FINE_LOCATION
+//                ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+//                    this,
+//                    Manifest.permission.ACCESS_COARSE_LOCATION
+//                )== PackageManager.PERMISSION_GRANTED
+//            ) {
+//                var perm = arrayOf(
+//                    Manifest.permission.ACCESS_COARSE_LOCATION,
+//                    Manifest.permission.ACCESS_FINE_LOCATION
+//                )
+//
+//                ActivityCompat.requestPermissions(this,perm,request)
+//                return
+//            }
+//            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener)
+//            publishLocationToBroker()
+//
+//        } catch (e:Exception){
+//            e.printStackTrace()
+//            Toast.makeText(this,"An error occurred when connecting to broker", Toast.LENGTH_SHORT).show()
+//        }
+//        Toast.makeText(this, "Started publishing to broker", Toast.LENGTH_SHORT).show()
     }
 
     fun stopPublish(view: View?) {
@@ -114,22 +208,45 @@ class MainActivity : AppCompatActivity(){
         }
         Toast.makeText(this, "Disconnecting from broker", Toast.LENGTH_SHORT).show()
     }
-    private fun updateLocationData(location: Location){
+//    private fun updateLocationData(location: Location){
+//        id += 1u
+//        ms_time = System.currentTimeMillis()
+//        val speedKMH = location.speed * 3.6
+//        speed = speedKMH.toDouble()
+//        latitude = location.latitude
+//        longitude = location.longitude
+//
+//        Log.d("updateLocationData", "Updated: ID = $id, Time = $ms_time, Speed = $speed, Latitude = $latitude, Longitude = $longitude")
+//    }
+
+    private fun publishLocationToBroker(location: Location){
+        studentID = studentIDEditText.text.toString()
+//        val locationData = "StudentID: $studentID, ID: $id, Time: $ms_time, Speed: $speed km/h, Latitude: $latitude, Longitude: $longitude"
+//        Log.d("Data", "StudentID: $studentID, ID: $id, Time: $ms_time, Speed: $speed km/h, Latitude: $latitude, Longitude: $longitude")
+//
         id += 1u
         ms_time = System.currentTimeMillis()
-        val speedKMH = location.speed * 3.6
-        speed = speedKMH.toDouble()
+        speed = location.speed * 3.6
         latitude = location.latitude
         longitude = location.longitude
-    }
 
-    private fun publishLocationToBroker(){
-        studentID = studentIDEditText.text.toString()
-        val locationData = "StudentID: $studentID, ID: $id, Time: $ms_time, Speed: $speed km/h, Latitude: $latitude, Longitude: $longitude"
-        Log.d("Data", "StudentID: $studentID, ID: $id, Time: $ms_time, Speed: $speed km/h, Latitude: $latitude, Longitude: $longitude")
+        val locationData = LocationData(
+            StudentID = studentID,
+//            ID = "$id",
+            Time = ms_time,
+//            Speed = "$speed km/h",
+            Latitude = latitude,
+            Longitude = longitude
+        )
+
+        val gson = Gson()
+        val locationDataJson = gson.toJson(locationData)
+
+        Log.d("Data", locationDataJson)
 
         try{
-            client?.publishWith()?.topic("assignment/location")?.payload(locationData.toByteArray())?.send();
+            client?.publishWith()?.topic("assignment/location")?.payload(locationDataJson.toByteArray(Charsets.UTF_8))?.send()
+            Log.d("Send", "Data sent $locationDataJson")
         } catch (e:Exception){
             Toast.makeText(this,"An error occurred when sending a message to the broker", Toast.LENGTH_SHORT).show()
         }
